@@ -35,24 +35,32 @@ class GameBoard:
         # State 3: draw
 
     def print_bd(self):
-
+        print("  0 1 2")
         for i in range(3):
+            print(i, end=" ")
             for j in range(3):
-                print(self.entries[i][j],end='')
+                cell = self.entries[i][j]
+                if cell == 0:
+                    print(".", end=" ")
+                elif cell == 1:
+                    print("X", end=" ")
+                else:
+                    print("O", end=" ")
             print('')
 
 
 
-    def checkwin(self) -> int:
-        
+    def checkwin(self, bd=None) -> int: # FIX-> added bd parameter sothat we can check the hypothetical scenarios
+        if bd is None:
+            bd = self.entries
         for line in WIN_LINES:
-            vals = [self.entries[r][c] for r,c in line]
+            vals = [bd[r][c] for r,c in line]
             if vals == [1, 1, 1]:   
                 return 1
             if vals == [2, 2, 2]:
                 return 2
             
-        if any(0 in row for row in self.entries):
+        if any(0 in row for row in bd):
             return 0
 
         return 3
@@ -74,7 +82,7 @@ class GameBoard:
         # return (move, score)
         self.minmax_nodes += 1 
         
-        result = self.checkwin()
+        result = self.checkwin(bd)  # FIX-> it was checking the actual senario, rather than the hypothetical senario
         if result == 1: 
             return None, 10-depth # x win, prefer faster wins 
         if result == 2: 
@@ -117,7 +125,7 @@ class GameBoard:
     def alphabeta(self, bd=None, depth=0,alpha = -math.inf, beta = math.inf):
       
         self.ab_nodes += 1
-        result = self.checkwin()
+        result = self.checkwin(bd)  # FIX-> it was checking the actual senario, rather than the hypothetical senario
         if result == 1: 
             return None, 10-depth # x win, prefer faster wins 
         if result == 2: 
@@ -176,6 +184,8 @@ class TicTacToeGame:
         self.turn = 1 # first player is 1
         self.turnnumber = 1
 
+    def bounds(self, r,c):
+        return 0<=r<3 and 0<=c<3
 
     def playturn(self):
         print("Turn number: ", self.turnnumber)
@@ -189,18 +199,38 @@ class TicTacToeGame:
             print("Human, please choose a space!")
             validinput = False
             
-            user_input = input("Enter two numbers separated by a comma: ")
-            humanrow, humancol = map(int, map(str.strip, user_input.split(',')))
-    
-                 
-            self.gameboard.entries[humanrow][humancol] = 1
-            self.turn = 2
+            while not validinput:
+                user_input = input("Enter two numbers separated by a comma: ")
+                try:
+                    humanrow, humancol = map(int, map(str.strip, user_input.split(',')))
+
+                    if not self.bounds(humanrow, humancol):
+                        print("Out of range. Try again with 0-2.")
+                        continue
+
+                    if self.gameboard.entries[humanrow][humancol] != 0:
+                        print("Not a valid move. This space is already taken. Try again with another move!")
+                        continue
+                         
+                    self.gameboard.entries[humanrow][humancol] = 1
+                    self.gameboard.state = self.gameboard.checkwin() # after each move we check the win
+                    if self.gameboard.state != 0:
+                        return
+                    self.turn = 2
+                    validinput =True
+                
+                except Exception as e:
+                    print(f"Error {e}")
+
         else:
             print("AI is thinking...")
             #move, score = self.gameboard.minmax(self.gameboard.entries)
-            move, score = self.gameboard.alphabeta(self.gameboard.entries,self.alpha,self.beta)
+            move, score = self.gameboard.alphabeta(self.gameboard.entries)
             print("AI chooses move: ", move, " with score: ", score)
             self.gameboard.entries[move[0]][move[1]] = 2
+            self.gameboard.state = self.gameboard.checkwin() # after each move we check the win; this way the AI will not try to make a move after win
+            if self.gameboard.state != 0:
+                return
             self.turn = 1
 
 
@@ -210,7 +240,7 @@ game = TicTacToeGame()
 
 while game.gameboard.state == 0:
     game.playturn()
-    game.gameboard.state = game.gameboard.checkwin()
+    # game.gameboard.state = game.gameboard.checkwin() # as we check after each move, we don't need to check here
     print(' ')
 
 game.gameboard.print_bd()
