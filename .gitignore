@@ -71,3 +71,4 @@ log_files
 verv\
 class_stuff\
 .DS_Store
+.ipynb_checkpoints
