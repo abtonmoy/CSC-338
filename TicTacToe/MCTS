@@ -18,12 +18,20 @@ class GameBoard:
     def __init__(self):
 
         self.entries = [[0, 0, 0], [0, 0, 0], [0, 0 ,0]]
+        self.state = 0
         
     def print_bd(self):
-
+        print("  0 1 2")
         for i in range(3):
+            print(i, end=" ")
             for j in range(3):
-                print(self.entries[i][j],end='')
+                cell = self.entries[i][j]
+                if cell == 0:
+                    print(".", end=" ")
+                elif cell == 1:
+                    print("X", end=" ")
+                else:
+                    print("O", end=" ")
             print('')
 
     def checkwin(self) -> int:
@@ -172,12 +180,111 @@ def MCTS_move(root_state: GameBoard, iterations=2000):
     
     return best_action, player, next_state
 
-bd = GameBoard()
-print('-------- before move ----------')
-bd.entries = [[1,0,0],[0,2,0],[0,0,0]]
-bd.print_bd()
-print('-------- after MCTS move ----------')
-best_action, next_player, next_bd = MCTS_move(bd, iterations=1000)
-print("Best action:", best_action, "for player", next_player)
-next_bd.print_bd()
-print('----------------------------------')
+# bd = GameBoard()
+# print('-------- before move ----------')
+# bd.entries = [[1,0,0],[0,2,0],[0,0,0]]
+# bd.print_bd()
+# print('-------- after MCTS move ----------')
+# best_action, next_player, next_bd = MCTS_move(bd, iterations=1000)
+# print("Best action:", best_action, "for player", next_player)
+# next_bd.print_bd()
+# print('----------------------------------')
+
+class TicTacToeGameMCT:
+    def __init__(self):
+        while True:
+            choice = input("Do you want to play as X or O? ").strip().upper()
+            if choice in ["X","O"]:
+                break
+            print("Please use 'X' or 'O'")
+        
+        self.gameboard = GameBoard()
+        self.human_player = 1 if choice == "X" else 2
+        self.ai = 2 if choice == "X" else 1
+        self.turn = 1
+        self.turn_num = 1
+
+        if self.human_player == 1:
+            print(f"You are X")
+        else:
+            print(f"You are O")
+
+        if self.ai == 1:
+            print("AI goes first")
+        else:
+            print("It's your turn first")
+        
+    
+    def bounds(self, r, c):
+        return 0<=r<3 and 0<=c<3
+    
+
+    def playturn(self):
+        print("Turn number: ", self.turn_num)
+        self.turn_num += 1
+        
+        self.gameboard.print_bd()
+
+        if self.turn == self.human_player:
+            print("Human, please choose a space!")
+            validinput = False
+            
+            while not validinput:
+                user_input = input("Enter two numbers separated by a comma: ")
+                try:
+                    humanrow, humancol = map(int, map(str.strip, user_input.split(',')))
+
+                    if not self.bounds(humanrow, humancol):
+                        print("Out of range. Try again with 0-2.")
+                        continue
+
+                    if self.gameboard.entries[humanrow][humancol] != 0:
+                        print("Not a valid move. This space is already taken. Try again with another move!")
+                        continue
+                         
+                    self.gameboard.entries[humanrow][humancol] = self.human_player
+                    self.gameboard.state = self.gameboard.checkwin()
+                    if self.gameboard.state != 0:
+                        return
+                    self.turn = self.ai
+                    validinput = True
+                
+                except Exception as e:
+                    print(f"Error: {e}. Please enter in format 'row,col' (e.g., 1,2)")
+        
+        else:
+            print("AI is THINKING...")
+            try:
+                best_action, player, next_board = MCTS_move(self.gameboard, iterations=1000)
+                print("AI choose move:", best_action)
+                self.gameboard.entries[best_action[0]][best_action[1]] = self.ai
+                self.gameboard.state = self.gameboard.checkwin()
+                if self.gameboard.state != 0:
+                    return
+                self.turn = self.human_player
+            except ValueError:
+                print("Game's already over")
+                return
+            
+
+
+
+game = TicTacToeGameMCT()
+
+while game.gameboard.state == 0:
+    game.playturn()
+    print(' ')
+
+game.gameboard.print_bd()
+if game.gameboard.state == 1: 
+    if game.human_player == 1:
+        print(" You win!(X wins)")
+    else:
+        print(" AI wins! (X wins)!")
+elif game.gameboard.state == 2:  
+    if game.human_player == 2:
+        print("You win! (O wins)")
+    else:
+        print("AI wins! (O wins)")
+else:
+    print("The game is a draw!")
