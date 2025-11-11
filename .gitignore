@@ -69,6 +69,9 @@ data
 log_files
 
 verv\
+venv_ml\
+venv_gpu\
+
 class_stuff\
 .DS_Store
 .ipynb_checkpoints
